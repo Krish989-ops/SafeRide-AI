@@ -28,12 +28,15 @@ SafeRide AI also maintains trip-level safety information through a **FastAPI bac
 Drivers can become unsafe due to:
 
 ### 😴 Driver Fatigue & Drowsiness
+
 Prolonged eye closure and fatigue can reduce driver awareness.
 
 ### 📱 Driver Distraction
+
 Looking away from the road for extended periods can reduce attention to the driving environment.
 
 ### ⚠️ Lack of Real-Time Safety Monitoring
+
 Traditional trip systems primarily focus on transportation and trip management rather than continuous driver-state monitoring.
 
 SafeRide AI addresses this gap by providing a real-time driver safety layer during an active trip.
@@ -65,7 +68,7 @@ Risk / Safety Decision
 Real-Time Warning / Alert
      ↓
 Trip Safety Data & Report
-
+```
 
 ---
 
