@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SafeRide AI — Real-Time Driver Safety</title>
+<link rel="stylesheet" href="style.css">
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+
+
+</head>
+
+<body class="min-h-screen bg-gray-950 text-white">
+
+<!-- FULL-BROWSER CRITICAL ALERT -->
+<div id="critical-alert" class="critical-alert hidden" aria-live="assertive">
+    <div class="critical-box">
+        <div class="critical-icon">⚠</div>
+        <h1 id="critical-title">CRITICAL DRIVER ALERT</h1>
+        <p id="critical-message" class="mt-5 font-semibold">Prolonged eye closure detected.</p>
+        <div id="critical-duration-box" class="critical-duration">
+            EYES CLOSED: <span id="critical-duration">8.0</span> SECONDS
+        </div>
+        <p id="critical-instruction" class="mt-6 font-black uppercase">
+            WAKE UP AND STOP SAFELY AS SOON AS POSSIBLE
+        </p>
+        <button id="dismiss-critical"
+                class="mt-5 px-7 py-3 rounded-xl bg-white text-red-700 font-black hover:bg-gray-100">
+            I AM ALERT
+        </button>
+    </div>
+</div>
+
+<!-- YAWN / REFRESH RECOMMENDATION -->
+<div id="refresh-alert" class="refresh-alert hidden" aria-live="assertive">
+    <div class="refresh-box">
+        <div class="refresh-icon">☕</div>
+        <h2>FATIGUE WARNING</h2>
+        <p id="refresh-message">5 yawns detected during this trip.</p>
+        <strong>Consider stopping safely and taking a short break to refresh.</strong>
+        <button id="dismiss-refresh"
+                class="mt-5 px-6 py-3 rounded-xl bg-white text-amber-700 font-black hover:bg-gray-100">
+            ACKNOWLEDGE
+        </button>
+    </div>
+</div>
+
+<header class="border-b border-gray-800 bg-gray-950/95">
+    <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-emerald-500 flex items-center justify-center">
+                <i data-lucide="shield-check" class="w-6 h-6 text-gray-950"></i>
+            </div>
+            <div>
+                <h1 class="text-xl font-bold">SafeRide AI</h1>
+                <p class="text-[11px] text-gray-500">REAL-TIME DRIVER SAFETY PROTOTYPE</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-3">
+            <span id="model-status" class="model-status loading">AI LOADING</span>
+            <span id="mode-badge" class="px-3 py-1 rounded-full text-xs font-medium bg-gray-800 text-gray-400">INACTIVE</span>
+            <span id="clock" class="mono text-sm text-gray-500"></span>
+        </div>
+    </div>
+</header>
+
+<main class="max-w-7xl mx-auto px-4 py-6">
+
+    <!-- BOOKING CONTROL -->
+    <section class="rounded-2xl p-6 mb-6 bg-gray-900/80 border border-gray-800">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+                <h2 class="font-bold text-lg">Driver Safety Monitoring</h2>
+                <p class="text-sm text-gray-400 mt-1">
+                    Start a trip to activate camera monitoring and distraction-prevention simulation.
+                </p>
+            </div>
+            <button id="booking-btn"
+                    onclick="toggleBooking()"
+                    class="px-6 py-3 rounded-xl font-semibold text-gray-950 bg-emerald-400 hover:bg-emerald-300 transition-colors">
+                Start Trip
+            </button>
+        </div>
+    </section>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- CAMERA -->
+        <div class="lg:col-span-2">
+            <div class="rounded-2xl overflow-hidden relative bg-gray-900 border border-gray-800"
+                 style="aspect-ratio:16/9;">
+
+                <div class="absolute inset-0 cam-grid z-10 pointer-events-none"></div>
+
+                <video id="cam-video"
+                       autoplay
+                       muted
+                       playsinline
+                       preload="auto"
+                       aria-label="SafeRide AI live driver camera"
+                       class="w-full h-full object-cover"
+                       style="transform:scaleX(-1);">
+                </video>
+
+                <canvas id="landmark-canvas"></canvas>
+                <div id="face-box" class="face-box">
+                    <span class="face-label">FACE DETECTED • AI TRACKING</span>
+                </div>
+
+                <div id="cam-fallback"
+                     class="absolute inset-0 flex flex-col items-center justify-center bg-gray-900 text-gray-500 z-20">
+                    <i data-lucide="camera-off" class="w-12 h-12 mb-3"></i>
+                    <p class="text-sm" id="cam-msg">Camera is inactive</p>
+                    <p class="text-xs text-gray-600 mt-2">Click Start Trip to activate Safety Mode</p>
+                </div>
+
+                <!-- LIVE METRICS -->
+                <div id="overlay-metrics" class="absolute top-4 left-4 space-y-2 z-30 hidden">
+                    <div class="metric-chip rounded-lg px-3 py-1.5 text-xs mono">
+                        <span class="text-emerald-400">EAR:</span>
+                        <span id="ear-val">--</span>
+                    </div>
+                    <div class="metric-chip rounded-lg px-3 py-1.5 text-xs mono">
+                        <span class="text-emerald-400">MAR:</span>
+                        <span id="mar-val">--</span>
+                    </div>
+                    <div class="metric-chip rounded-lg px-3 py-1.5 text-xs mono">
+                        <span class="text-emerald-400">HEAD:</span>
+                        <span id="head-val">--</span>
+                    </div>
+                    <div class="metric-chip rounded-lg px-3 py-1.5 text-xs mono">
+                        <span class="text-emerald-400">AI FPS:</span>
+                        <span id="fps-val">--</span>
+                    </div>
+                </div>
+
+                <div id="live-status"
+                     class="absolute top-4 right-4 z-30 metric-chip rounded-lg px-3 py-2 text-xs font-semibold hidden">
+                    <span id="live-dot" class="status-dot bg-gray-500 mr-2"></span>
+                    <span id="live-text">WAITING</span>
+                </div>
+
+                <div id="alert-overlay"
+                     class="absolute inset-0 z-40 bg-red-500/20 border-4 border-red-500 rounded-2xl hidden flex items-center justify-center">
+                    <p id="alert-overlay-text" class="text-red-300 font-bold text-xl pulse-alert">
+                        ⚠ DROWSINESS DETECTED
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT -->
+        <div class="space-y-6">
+
+            <!-- DRIVER TRIP REPORT -->
+            <div class="rounded-2xl p-5 bg-gray-900/80 border border-gray-800">
+                <div class="flex items-center justify-between gap-3">
+                    <div>
+                        <h3 class="text-sm font-bold text-gray-200">DRIVER TRIP REPORT</h3>
+                        <p id="report-state" class="text-[11px] text-gray-500 mt-1">Ready for next trip</p>
+                    </div>
+                    <span id="report-storage" class="text-[10px] px-2 py-1 rounded-full bg-gray-800 text-gray-500">NOT SAVED</span>
+                </div>
+
+                <div class="mt-4 grid grid-cols-2 gap-3">
+                    <div class="rounded-xl bg-gray-950/70 border border-gray-800 p-3">
+                        <p class="text-[10px] text-gray-500">TRIP TIME</p>
+                        <p id="report-duration" class="mono text-lg font-bold text-white mt-1">00:00</p>
+                    </div>
+                    <div class="rounded-xl bg-gray-950/70 border border-gray-800 p-3">
+                        <p class="text-[10px] text-gray-500">PERFORMANCE</p>
+                        <p id="report-score" class="mono text-lg font-bold text-emerald-400 mt-1">10.0 / 10</p>
+                    </div>
+                </div>
+
+                <div class="mt-4 rounded-xl bg-gray-950/70 border border-gray-800 p-3 text-center">
+                    <div id="report-stars" class="text-2xl tracking-widest text-amber-400">★★★★★</div>
+                    <p id="report-rating-text" class="text-xs text-gray-400 mt-1">Excellent driving performance</p>
+                </div>
+
+                <div class="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 text-xs">
+                    <div class="flex justify-between"><span class="text-gray-500">Yawns</span><span id="report-yawns" class="font-bold text-white">0</span></div>
+                    <div class="flex justify-between"><span class="text-gray-500">Warnings</span><span id="report-warnings" class="font-bold text-white">0</span></div>
+                    <div class="flex justify-between"><span class="text-gray-500">Distractions</span><span id="report-distractions" class="font-bold text-white">0</span></div>
+                    <div class="flex justify-between"><span class="text-gray-500">Max eye closure</span><span id="report-eye" class="font-bold text-white">0.0s</span></div>
+                </div>
+
+                <div class="mt-4">
+                    <div class="flex justify-between text-[10px] text-gray-500 mb-1">
+                        <span>TRIP PERFORMANCE</span><span id="report-progress-label">100%</span>
+                    </div>
+                    <div class="h-2 rounded-full bg-gray-800 overflow-hidden">
+                        <div id="report-progress" class="h-full bg-emerald-500 transition-all" style="width:100%"></div>
+                    </div>
+                </div>
+
+                <div class="mt-4 rounded-lg bg-emerald-500/5 border border-emerald-500/10 px-3 py-2">
+                    <p id="report-summary" class="text-[11px] leading-relaxed text-gray-400">Start a trip to generate a live driver performance report.</p>
+                </div>
+            </div>
+
+            <div class="rounded-2xl p-6 text-center bg-gray-900/80 border border-gray-800">
+                <h3 class="text-sm font-medium mb-4 text-gray-300">DRIVER SAFETY SCORE</h3>
+
+                <svg viewBox="0 0 120 120" class="w-28 h-28 mx-auto">
+                    <circle cx="60" cy="60" r="52" fill="none"
+                            stroke="#1f2937" stroke-width="10" />
+                    <circle id="gauge-circle"
+                            cx="60" cy="60" r="52" fill="none"
+                            stroke="#10b981" stroke-width="10"
+                            stroke-linecap="round"
+                            stroke-dasharray="327"
+                            stroke-dashoffset="6.5"
+                            class="gauge-ring"
+                            transform="rotate(-90 60 60)" />
+                    <text x="60" y="65" text-anchor="middle"
+                          fill="white" font-size="24" font-weight="bold"
+                          id="score-text" class="mono">98</text>
+                </svg>
+
+                <p id="score-status" class="text-emerald-400 text-sm font-medium mt-3">Excellent</p>
+            </div>
+
+            <div class="rounded-2xl p-5 bg-gray-900/80 border border-gray-800">
+                <h3 class="text-sm font-medium mb-3 text-gray-300">AI DETECTION INDICATORS</h3>
+                <div class="space-y-3">
+
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-400 text-sm">Eye Closure</span>
+                        <span id="ind-eye" class="w-3 h-3 rounded-full bg-emerald-500"></span>
+                    </div>
+
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-400 text-sm">Yawning</span>
+                        <span id="ind-yawn" class="w-3 h-3 rounded-full bg-emerald-500"></span>
+                    </div>
+
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-400 text-sm">Head Position</span>
+                        <span id="ind-head" class="w-3 h-3 rounded-full bg-emerald-500"></span>
+                    </div>
+
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-400 text-sm">Distraction</span>
+                        <span id="ind-distract" class="w-3 h-3 rounded-full bg-emerald-500"></span>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="rounded-2xl p-5 bg-gray-900/80 border border-gray-800">
+                <h3 class="text-sm font-medium text-gray-300">EYE CLOSURE MONITOR</h3>
+                <div class="mt-3 flex items-end justify-between">
+                    <span class="text-gray-500 text-xs">Continuous closure</span>
+                    <span id="closure-time" class="mono text-xl font-bold text-emerald-400">0.0s</span>
+                </div>
+                <div class="mt-2 h-2 rounded-full bg-gray-800 overflow-hidden">
+                    <div id="closure-bar" class="h-full bg-emerald-500 transition-all" style="width:0%"></div>
+                </div>
+                <p class="text-[11px] text-gray-600 mt-2">
+                    Critical prototype threshold: 8 seconds
+                </p>
+            </div>
+
+            <div class="rounded-2xl p-5 bg-gray-900/80 border border-gray-800">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-sm font-medium text-gray-300">YAWN MONITOR</h3>
+                    <span id="yawn-count" class="yawn-count-badge">0 / 5</span>
+                </div>
+                <div class="mt-3 flex items-end justify-between">
+                    <span class="text-gray-500 text-xs">Detected yawns this trip</span>
+                    <span id="yawn-status" class="text-emerald-400 text-sm font-bold">Normal</span>
+                </div>
+                <div class="mt-2 h-2 rounded-full bg-gray-800 overflow-hidden">
+                    <div id="yawn-bar" class="h-full bg-emerald-500 transition-all" style="width:0%"></div>
+                </div>
+                <p class="text-[11px] text-gray-600 mt-2">
+                    2 yawns → warning • 5 yawns → refresh recommendation
+                </p>
+            </div>
+
+            <div class="rounded-2xl p-5 bg-gray-900/80 border border-gray-800">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-sm font-medium text-gray-300">DISTRACTION MONITOR</h3>
+                    <span id="distraction-time" class="mono text-xl font-bold text-emerald-400">0.0s</span>
+                </div>
+                <div class="mt-3 flex items-end justify-between">
+                    <span class="text-gray-500 text-xs">Head away from forward position</span>
+                    <span id="distraction-status" class="text-emerald-400 text-sm font-bold">Focused</span>
+                </div>
+                <div class="mt-2 h-2 rounded-full bg-gray-800 overflow-hidden">
+                    <div id="distraction-bar" class="h-full bg-emerald-500 transition-all" style="width:0%"></div>
+                </div>
+                <p class="text-[11px] text-gray-600 mt-2">
+                    10s → warning • 15s → second warning • then alarm
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- BOTTOM -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+
+        <!-- DISTRACTION -->
+        <div class="rounded-2xl p-6 bg-gray-900/80 border border-gray-800">
+            <h3 class="font-bold mb-4">Distraction Prevention</h3>
+            <p id="restriction-status" class="text-xs text-gray-500 mb-4">
+                Safety Mode inactive.
+            </p>
+
+            <div id="app-grid" class="grid grid-cols-4 gap-3">
+
+                <div class="app-item flex flex-col items-center gap-1" data-app="blocked">
+                    <div class="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center">
+                        <i data-lucide="youtube" class="w-5 h-5 text-red-400"></i>
+                    </div>
+                    <span class="text-[10px] text-gray-500">YouTube</span>
+                </div>
+
+                <div class="app-item flex flex-col items-center gap-1" data-app="blocked">
+                    <div class="w-10 h-10 rounded-xl bg-pink-500/20 flex items-center justify-center">
+                        <i data-lucide="instagram" class="w-5 h-5 text-pink-400"></i>
+                    </div>
+                    <span class="text-[10px] text-gray-500">Instagram</span>
+                </div>
+
+                <div class="app-item flex flex-col items-center gap-1" data-app="blocked">
+                    <div class="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center">
+                        <i data-lucide="facebook" class="w-5 h-5 text-blue-400"></i>
+                    </div>
+                    <span class="text-[10px] text-gray-500">Facebook</span>
+                </div>
+
+                <div class="app-item flex flex-col items-center gap-1" data-app="allowed">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center">
+                        <i data-lucide="navigation" class="w-5 h-5 text-emerald-400"></i>
+                    </div>
+                    <span class="text-[10px] text-gray-500">Maps</span>
+                </div>
+
+                <div class="app-item flex flex-col items-center gap-1" data-app="allowed">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center">
+                        <i data-lucide="phone" class="w-5 h-5 text-emerald-400"></i>
+                    </div>
+                    <span class="text-[10px] text-gray-500">Phone</span>
+                </div>
+
+                <div class="app-item flex flex-col items-center gap-1" data-app="allowed">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center">
+                        <i data-lucide="siren" class="w-5 h-5 text-emerald-400"></i>
+                    </div>
+                    <span class="text-[10px] text-gray-500">SOS</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ALERT LOG -->
+        <div class="rounded-2xl p-6 bg-gray-900/80 border border-gray-800">
+            <div class="flex items-center justify-between">
+                <h3 class="font-bold mb-4">Safety Event Log</h3>
+                <span class="text-[10px] text-gray-600">LOCAL SESSION ONLY</span>
+            </div>
+
+            <div id="alert-log" class="space-y-2 max-h-48 overflow-y-auto">
+                <p class="text-gray-600 text-sm italic">No alerts yet</p>
+            </div>
+        </div>
+    </div>
+
+    <p class="text-[11px] text-gray-700 mt-5 text-center">
+        Prototype note: fatigue and distraction detection are computer-vision based; app restriction is simulated inside this web application. Yawn/distraction thresholds are prototype calibration values.
+    </p>
+</main>
+
+
+
+    <script type="module" src="script.js"></script>
+</body>
+</html>
