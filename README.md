@@ -65,3 +65,38 @@ Risk / Safety Decision
 Real-Time Warning / Alert
      ↓
 Trip Safety Data & Report
+
+
+---
+
+## 📸 Screenshots & Demo
+
+The SafeRide AI prototype provides a real-time driver monitoring interface with safety alerts, event logging, and trip-level reporting.
+
+### 🏠 Main Interface
+
+![SafeRide AI Home](docs/screenshots/home.png)
+
+### 🚗 Active Trip Monitoring
+
+![Active Trip Monitoring](docs/screenshots/active_trip.png)
+
+### 😴 Drowsiness Detection
+
+![Drowsiness Alert](docs/screenshots/drowsiness_alert.png)
+
+### 🥱 Fatigue Detection
+
+![Fatigue Detection](docs/screenshots/fatigue%20detection.png)
+
+### 👀 Distraction Detection
+
+![Distraction Alert](docs/screenshots/Distraction_alert.png)
+
+### 📋 Safety Event Log
+
+![Safety Event Log](docs/screenshots/safety_event_log.png)
+
+### 📊 Trip Safety Report
+
+![Trip Report](docs/screenshots/trip_report.png)
